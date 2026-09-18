@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="ja">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>交通費精算申請</title>
+  <meta name="description" content="交通費精算申請フォーム（Canva不要のスタンドアロン版）">
+<style>
+    :root {
+      --ink: #17324d;
+      --muted: #5d6d7e;
+      --blue: #1769aa;
+      --blue-dark: #0f548c;
+      --pale: #eef7fc;
+      --line: #d9e3ea;
+      --danger: #c93636;
+      --success: #167a55;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; color: var(--ink); }
+    .app-shell { width: 100%; max-width: 720px; margin: 0 auto; padding: 20px 16px 44px; }
+    .surface-card { border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(23, 50, 77, .07); }
+    .form-control {
+      width: 100%; min-height: 52px; border: 1px solid #b9c8d3; border-radius: 12px;
+      background: #fff; padding: 12px 14px; font-size: 16px; color: var(--ink);
+    }
+    .form-control:focus { outline: 3px solid rgba(23, 105, 170, .2); border-color: var(--blue); }
+    .choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .choice-label {
+      min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 7px;
+      border: 1px solid #b9c8d3; border-radius: 12px; background: #fff; font-weight: 600; cursor: pointer;
+    }
+    .choice-label:has(input:checked) { border-color: var(--blue); background: #e8f5fc; color: var(--blue-dark); }
+    .choice-label input { accent-color: var(--blue); width: 18px; height: 18px; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+    .calendar-day, .calendar-blank {
+      min-height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 14px;
+    }
+    .calendar-day { border: 1px solid transparent; background: #f6f9fb; cursor: pointer; color: var(--ink); }
+    .calendar-day:hover, .calendar-day:focus-visible { border-color: var(--blue); outline: none; }
+    .calendar-day.selected { background: var(--blue); color: #fff; font-weight: 700; }
+    .calendar-day.today { box-shadow: inset 0 0 0 1px #7baed3; }
+    .calendar-weekday { text-align: center; font-size: 12px; font-weight: 700; color: var(--muted); padding-bottom: 3px; }
+    .error-message { display: none; margin-top: 7px; color: var(--danger); font-size: 14px; font-weight: 600; }
+    .has-error .form-control, .has-error .choice-wrap { border-color: var(--danger); }
+    .has-error .error-message { display: block; }
+    .hidden-panel { display: none !important; }
+    .view-enter { animation: enter .35s ease both; }
+    @keyframes enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .sticky-action { position: sticky; bottom: 8px; z-index: 50; padding-top: 14px; padding-bottom: 4px; background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,.96) 28%); }
+    #review-button { background: #1769aa !important; border: 0 !important; color: #fff !important; display: flex !important; visibility: visible !important; opacity: 1 !important; }
+    #review-button:disabled { opacity: .6 !important; }
+
+    /* Standalone/mobile fallback: do not rely on Tailwind when opened from iPhone Files/Safari */
+    html { width: 100%; overflow-x: hidden; }
+    body { margin: 0; width: 100%; min-width: 0; background: #f8fbfd; font-size: 16px; line-height: 1.5; overflow-x: hidden; }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    .app-shell { width: 100%; max-width: 720px; margin: 0 auto; padding: 20px 16px 44px; }
+    .app-shell > header { margin-bottom: 20px; padding-top: 8px; }
+    .app-shell h1 { margin: 0; font-size: 24px; }
+    .app-shell header p { margin: 4px 0 0; color: var(--muted); }
+    .surface-card { width: 100%; max-width: 100%; overflow: hidden; background: #fff; border-radius: 16px; }
+    .canva-card { padding: 20px; }
+    .canva-card h2 { margin: 0; font-size: 18px; }
+    .canva-text { color: inherit; }
+    [data-field] > label, [data-field] > p:first-child, [data-field] > .canva-text { display: block; }
+    .form-control { display: block; max-width: 100%; min-width: 0; }
+    .choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; }
+    .choice-grid .choice-label { width: 100%; min-width: 0; }
+    .choice-label { color: var(--ink); }
+    .choice-wrap { width: 100%; }
+    .calendar-inputs { width: 100%; }
+    .calendar-grid { width: 100%; }
+    .relative { position: relative; width: 100%; }
+    .parking-daily, .parking-monthly, .period-inputs, .calendar-inputs { width: 100%; }
+    .parking-daily.hidden, .parking-monthly.hidden, .period-inputs.hidden, .calendar-inputs.hidden, .selected-dates.hidden, .other-site.hidden, .hidden-panel, .hidden { display: none !important; }
+    .selected-dates { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: #f6f9fb; font-size: 14px; }
+    .selected-dates strong { display: inline-block; margin-right: 5px; }
+    .route-card { margin-top: 20px; }
+    .route-card:first-child { margin-top: 0; }
+    .route-heading { margin: 0; }
+    .sticky-action { position: sticky; bottom: 8px; width: 100%; }
+    #review-button { min-height: 58px; width: 100%; }
+    .canva-button { max-width: 100%; }
+    .mt-1 { margin-top: 4px; } .mt-2 { margin-top: 8px; } .mt-3 { margin-top: 12px; } .mt-4 { margin-top: 16px; } .mt-5 { margin-top: 20px; } .mt-6 { margin-top: 24px; } .mt-7 { margin-top: 28px; }
+    .mb-2 { margin-bottom: 8px; } .mb-3 { margin-bottom: 12px; } .mb-5 { margin-bottom: 20px; } .mb-6 { margin-bottom: 24px; }
+    .p-3 { padding: 12px; } .p-4 { padding: 16px; } .p-5 { padding: 20px; } .px-4 { padding-left: 16px; padding-right: 16px; } .px-5 { padding-left: 20px; padding-right: 20px; }
+    .py-10 { padding-top: 40px; padding-bottom: 40px; }
+    .block { display: block; } .flex { display: flex; } .grid { display: grid; } .w-full { width: 100%; } .h-11 { height: 44px; } .w-11 { width: 44px; } .h-16 { height: 64px; } .w-16 { width: 64px; }
+    .items-center { align-items: center; } .justify-center { justify-content: center; } .justify-between { justify-content: space-between; } .gap-2 { gap: 8px; } .gap-3 { gap: 12px; }
+    .shrink-0 { flex-shrink: 0; } .font-semibold { font-weight: 600; } .font-bold { font-weight: 700; } .text-center { text-align: center; } .text-sm { font-size: 14px; } .text-lg { font-size: 18px; } .leading-tight { line-height: 1.25; } .leading-relaxed { line-height: 1.625; } .text-white { color: #fff; }
+    .space-y-4 > * + * { margin-top: 16px; } .space-y-5 > * + * { margin-top: 20px; }
+    .min-h-\[54px\] { min-height: 54px; } .min-h-\[56px\] { min-height: 56px; } .min-h-\[58px\] { min-height: 58px; } .min-h-\[110px\] { min-height: 110px; }
+    .rounded-xl { border-radius: 12px; } .rounded-2xl { border-radius: 16px; } .rounded-3xl { border-radius: 24px; } .rounded-full { border-radius: 9999px; }
+    .border { border-width: 1px; border-style: solid; } .border-2 { border-width: 2px; border-style: solid; } .border-dashed { border-style: dashed; } .border-slate-300 { border-color: #cbd5e1; } .border-sky-500 { border-color: #0ea5e9; }
+    .bg-white { background: #fff; } .bg-sky-100 { background: #e0f2fe; } .bg-sky-50 { background: #f0f9ff; } .bg-slate-50 { background: #f8fafc; } .bg-amber-100 { background: #fef3c7; } .bg-emerald-100 { background: #d1fae5; } .bg-red-50 { background: #fef2f2; }
+    .text-sky-700 { color: #0369a1; } .text-slate-500 { color: #64748b; } .text-amber-700 { color: #b45309; } .text-emerald-700 { color: #047857; } .text-red-700 { color: #b91c1c; }
+    .shadow-lg { box-shadow: 0 8px 18px rgba(23,50,77,.14); } .shadow { box-shadow: 0 4px 12px rgba(23,50,77,.08); }
+    .relative .pr-12 { padding-right: 48px; } .absolute { position: absolute; } .right-4 { right: 16px; } .top-4 { top: 16px; }
+    .resize-y { resize: vertical; } .break-words { overflow-wrap: anywhere; }
+    .opacity-50 { opacity: .5; }
+    .grid.gap-2 { gap: 8px; } .grid.gap-3 { gap: 12px; }
+    @media (max-width: 480px) {
+      .app-shell { padding: 14px 12px 32px; }
+      .canva-card, .route-card { padding: 16px; }
+      .choice-grid { gap: 8px; }
+      .choice-label { min-height: 52px; padding: 8px 6px; text-align: center; }
+      .form-control { min-height: 50px; font-size: 16px; }
+      .calendar-grid { gap: 4px; }
+      .calendar-day, .calendar-blank { min-height: 38px; }
+    }
+    .summary-row { border-bottom: 1px solid #e2eaf0; padding: 9px 0; }
+    .summary-row:last-child { border-bottom: 0; }
+  </style>
+</head>
+ <body data-template-id="__page-root" class="w-full min-h-screen">
+  <main class="app-shell">
+   <header class="mb-6 pt-2">
+    <div class="flex items-center gap-3">
+     <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+      <span aria-hidden="true">🚆</span>
+     </div>
+     <div>
+      <h1 data-template-id="page-title" class="canva-text font-bold leading-tight"></h1>
+      <p data-template-id="page-description" class="canva-text mt-1 leading-relaxed"></p>
+     </div>
+    </div>
+   </header>
+   <section id="form-view" class="view-enter" aria-label="交通費精算申請フォーム">
+    <form id="expense-form" novalidate>
+     <section id="basic-info-card" data-template-id="basic-info-card" class="canva-card surface-card rounded-2xl bg-white p-5">
+      <h2 data-template-id="basic-info-heading" class="canva-text font-bold"></h2>
+      <div class="mt-5" data-field="employee_name">
+       <label data-template-id="employee-name-label" class="canva-text mb-2 block font-semibold" for="employee-name"></label> <input id="employee-name" class="form-control" type="text" autocomplete="name">
+       <p data-template-id="employee-name-error" class="canva-text error-message"></p>
+      </div>
+      <div class="mt-5" data-field="target_month">
+       <label data-template-id="target-month-label" class="canva-text mb-2 block font-semibold" for="target-month"></label> <input id="target-month" class="form-control" type="month">
+       <p data-template-id="target-month-help" class="canva-text mt-2 text-sm"></p>
+       <p data-template-id="target-month-error" class="canva-text error-message"></p>
+      </div>
+     </section>
+     <div id="route-list" class="mt-5 space-y-5"></div>
+     <section id="parking-card" data-template-id="parking-card" class="canva-card surface-card mt-5 rounded-2xl bg-white p-5">
+      <h2 data-template-id="parking-heading" class="canva-text mb-2 font-bold"></h2>
+      <p data-template-id="parking-question" class="canva-text mb-3"></p><p class="mb-3 text-sm text-slate-500">※駐輪場は申請全体で入力します。</p>
+      <div class="grid gap-2 choice-wrap">
+       <label class="choice-label"><input type="radio" name="parking-global" data-group="parking" value="利用なし"><span>利用なし</span></label> <label class="choice-label"><input type="radio" name="parking-global" data-group="parking" value="日払い"><span>日払い</span></label> <label class="choice-label"><input type="radio" name="parking-global" data-group="parking" value="月額"><span>月額</span></label>
+      </div>
+      <p data-template-id="parking-error" class="canva-text error-message"></p>
+      <div class="parking-daily hidden mt-4 rounded-xl bg-slate-50 p-4">
+       <div data-field="parking_fee_daily">
+        <label data-template-id="parking-daily-fee-label" class="canva-text mb-2 block font-semibold"></label>
+        <div class="relative"><input id="parking-fee-daily" class="form-control parking-fee-input pr-12" type="number" inputmode="numeric" min="0"><span class="absolute right-4 top-4 font-semibold text-slate-500">円</span>
+        </div>
+        <p data-template-id="parking-fee-error" class="canva-text error-message"></p>
+       </div>
+       <div data-field="parking_days">
+        <label data-template-id="parking-days-label" class="canva-text mb-2 mt-4 block font-semibold"></label>
+        <div class="relative"><input id="parking-days" class="form-control parking-days-input pr-12" type="number" inputmode="numeric" min="1"><span class="absolute right-4 top-4 font-semibold text-slate-500">日</span>
+        </div>
+        <p data-template-id="parking-days-error" class="canva-text error-message"></p>
+       </div>
+      </div>
+      <div class="parking-monthly hidden mt-4 rounded-xl bg-slate-50 p-4" data-field="parking_fee_monthly">
+       <label data-template-id="parking-monthly-fee-label" class="canva-text mb-2 block font-semibold"></label>
+       <div class="relative"><input id="parking-fee-monthly" class="form-control parking-fee-input pr-12" type="number" inputmode="numeric" min="0"><span class="absolute right-4 top-4 font-semibold text-slate-500">円</span>
+       </div>
+       <p data-template-id="parking-monthly-error" class="canva-text error-message"></p>
+      </div>
+     </section><button id="add-route-button" data-template-id="add-route-button" class="canva-button mt-5 flex min-h-[54px] w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-sky-500 bg-white px-4 font-bold text-sky-700 transition hover:bg-sky-50" type="button"> <span aria-hidden="true">＋</span> <span data-template-id="add-route-button-label" class="canva-text"></span> </button>
+     <p id="route-limit-message" data-template-id="route-limit-message" class="canva-text mt-2 hidden text-center text-sm"></p>
+     <div class="sticky-action">
+      <button id="review-button" data-template-id="review-button" class="canva-button flex min-h-[58px] w-full items-center justify-center gap-2 rounded-xl px-5 font-bold text-white shadow-lg transition hover:brightness-95" type="submit"> <span aria-hidden="true">✓</span> <span data-template-id="review-button-label" class="canva-text">入力内容を確認する</span> </button>
+     </div>
+    </form>
+   </section>
+   <section id="review-view" class="hidden-panel view-enter" aria-label="申請内容確認">
+    <div class="mb-5 flex items-center gap-3">
+     <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+      <span aria-hidden="true">✓</span>
+     </div>
+     <div>
+      <h2 data-template-id="review-heading" class="canva-text font-bold"></h2>
+      <p data-template-id="review-description" class="canva-text mt-1"></p>
+     </div>
+    </div>
+    <div id="review-content" class="space-y-4"></div>
+    <p id="submit-error" class="hidden mt-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700" role="alert"></p>
+    <div class="mt-6 grid gap-3">
+     <button id="back-button" data-template-id="back-button" class="canva-button min-h-[56px] rounded-xl border border-slate-300 bg-white px-5 font-bold" type="button"></button> <button id="submit-button" data-template-id="submit-button" class="canva-button min-h-[58px] rounded-xl px-5 font-bold text-white shadow-lg" type="button"></button>
+    </div>
+   </section>
+   <section id="complete-view" class="hidden-panel view-enter py-10 text-center" aria-live="polite">
+    <div class="surface-card rounded-3xl bg-white p-7">
+     <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+      <span aria-hidden="true" style="font-size:34px">✓</span>
+     </div>
+     <h2 data-template-id="complete-heading" class="canva-text mt-5 font-bold"></h2>
+     <p data-template-id="complete-description" class="canva-text mt-3 leading-relaxed"></p><button id="csv-button" data-template-id="csv-button" class="canva-button mt-7 flex min-h-[56px] w-full items-center justify-center gap-2 rounded-xl px-5 font-bold text-white" type="button"> <span aria-hidden="true">↓</span> <span data-template-id="csv-button-label" class="canva-text"></span> </button>
+    </div>
+   </section>
+  </main>
+  <template id="route-template">
+   <section class="route-card surface-card rounded-2xl bg-white p-5" data-route-id="">
+    <div class="flex items-center justify-between gap-3">
+     <h2 class="route-heading text-lg font-bold"></h2><button type="button" class="remove-route hidden min-h-[38px] rounded-lg px-3 text-sm font-bold text-red-700 underline">削除</button>
+    </div>
+    <div class="mt-5" data-field="site">
+     <p data-template-id="site-label" class="canva-text mb-2 font-semibold"></p>
+     <div class="choice-grid choice-wrap">
+      <label class="choice-label"><input type="radio" value="現場A"><span>現場A</span></label> <label class="choice-label"><input type="radio" value="現場B"><span>現場B</span></label> <label class="choice-label"><input type="radio" value="現場C"><span>現場C</span></label> <label class="choice-label"><input type="radio" value="その他"><span>その他</span></label>
+     </div>
+     <div class="other-site hidden mt-3">
+      <label data-template-id="other-site-label" class="canva-text mb-2 block font-semibold"></label> <input class="form-control other-site-input" type="text">
+     </div>
+     <p data-template-id="site-error" class="canva-text error-message"></p>
+    </div>
+    <div class="mt-6" data-field="trip">
+     <p data-template-id="trip-label" class="canva-text mb-2 font-semibold"></p>
+     <div class="choice-grid choice-wrap">
+      <label class="choice-label"><input type="radio" value="片道"><span>片道</span></label> <label class="choice-label"><input type="radio" value="往復"><span>往復</span></label> <label class="choice-label"><input type="radio" value="定期"><span>定期</span></label>
+     </div>
+     <p data-template-id="trip-error" class="canva-text error-message"></p>
+    </div>
+    <div class="mt-6" data-field="dates">
+     <p data-template-id="usage-date-label" class="canva-text mb-2 font-semibold"></p>
+     <div class="rounded-xl bg-sky-50 p-3">
+      <div class="period-inputs hidden grid gap-3 sm:grid-cols-2">
+       <div>
+        <label data-template-id="period-start-label" class="canva-text mb-2 block font-semibold" for="period-start-input"></label> <input id="period-start-input" class="form-control period-start-input" type="date">
+       </div>
+       <div>
+        <label data-template-id="period-end-label" class="canva-text mb-2 block font-semibold" for="period-end-input"></label> <input id="period-end-input" class="form-control period-end-input" type="date">
+       </div>
+      </div>
+      <div class="calendar-inputs">
+       <div class="mb-3 flex items-center justify-between">
+        <button type="button" class="calendar-prev flex h-10 w-10 items-center justify-center rounded-lg bg-white text-sky-800" aria-label="前月"><span aria-hidden="true">‹</span></button>
+        <p class="calendar-month font-bold text-sky-950"></p><button type="button" class="calendar-next flex h-10 w-10 items-center justify-center rounded-lg bg-white text-sky-800" aria-label="翌月"><span aria-hidden="true">›</span></button>
+       </div>
+       <div class="calendar-weekdays grid grid-cols-7 gap-1">
+        <span class="calendar-weekday">日</span><span class="calendar-weekday">月</span><span class="calendar-weekday">火</span> <span class="calendar-weekday">水</span><span class="calendar-weekday">木</span><span class="calendar-weekday">金</span><span class="calendar-weekday">土</span>
+       </div>
+       <div class="calendar-grid mt-1"></div>
+      </div>
+     </div>
+     <div class="selected-dates mt-3 rounded-xl bg-slate-50 p-3 text-sm leading-relaxed"></div>
+     <p data-template-id="dates-error" class="canva-text error-message"></p>
+    </div>
+    <div class="mt-6" data-field="transport">
+     <p data-template-id="transport-label" class="canva-text mb-2 font-semibold"></p>
+     <div class="choice-grid choice-wrap">
+      <label class="choice-label"><input type="radio" value="電車"><span>電車</span></label> <label class="choice-label"><input type="radio" value="バス"><span>バス</span></label>
+     </div>
+     <p data-template-id="transport-error" class="canva-text error-message"></p>
+    </div>
+    <div class="mt-5" data-field="boarding">
+     <label data-template-id="boarding-label" class="canva-text mb-2 block font-semibold"></label> <input class="form-control boarding-input" type="text">
+     <p data-template-id="boarding-error" class="canva-text error-message"></p>
+    </div>
+    <div class="mt-5" data-field="alighting">
+     <label data-template-id="alighting-label" class="canva-text mb-2 block font-semibold"></label> <input class="form-control alighting-input" type="text">
+     <p data-template-id="alighting-error" class="canva-text error-message"></p>
+    </div>
+    <div class="mt-5" data-field="fare">
+     <label data-template-id="fare-label" class="canva-text mb-2 block font-semibold"></label>
+     <div class="relative"><input class="form-control fare-input pr-12" type="number" inputmode="numeric" min="0"><span class="absolute right-4 top-4 font-semibold text-slate-500">円</span>
+     </div>
+     <p data-template-id="fare-error" class="canva-text error-message"></p>
+    </div>
+    <div class="mt-6" data-field="remarks"><label data-template-id="remarks-label" class="canva-text mb-2 block font-semibold" for="remarks-input"></label> <textarea id="remarks-input" class="form-control min-h-[110px] resize-y" rows="4"></textarea>
+     <p data-template-id="remarks-help" class="canva-text mt-2 text-sm"></p>
+    </div>
+   </section>
+  </template>
+  <script>
+    const routes = [];
+    // Canva外でも表示されるように文言を明示設定
+    const labels = {
+      "page-title": "交通費精算申請",
+      "page-description": "1か月分の交通費をまとめて申請してください。",
+      "basic-info-heading": "基本情報",
+      "employee-name-label": "社員名",
+      "employee-name-error": "社員名を入力してください。",
+      "target-month-label": "精算対象月",
+      "target-month-help": "申請する月を選択してください。",
+      "target-month-error": "精算対象月を選択してください。",
+      "parking-heading": "駐輪場",
+      "parking-question": "駐輪場を利用しましたか？",
+      "parking-daily-fee-label": "日額",
+      "parking-days-label": "利用日数",
+      "parking-monthly-fee-label": "月額",
+      "parking-error": "駐輪場の利用区分を選択してください。",
+      "parking-fee-error": "金額を入力してください。",
+      "parking-days-error": "利用日数を入力してください。",
+      "parking-monthly-error": "月額を入力してください。",
+      "add-route-button-label": "現場・経路を追加",
+      "route-limit-message": "現場・経路は最大4件まで追加できます。",
+      "review-button-label": "入力内容を確認する",
+      "review-heading": "申請内容の確認",
+      "review-description": "内容を確認して、問題なければ申請してください。",
+      "back-button": "入力画面に戻る",
+      "submit-button": "この内容で申請する",
+      "complete-heading": "申請が完了しました",
+      "complete-description": "申請内容をこの端末に保存しました。CSVが必要な場合は下のボタンから出力できます。",
+      "csv-button-label": "CSVを出力する",
+      "site-label": "現場名",
+      "other-site-label": "現場名を入力",
+      "site-error": "現場を選択してください。",
+      "trip-label": "利用区分（片道・往復・定期）",
+      "trip-error": "利用区分を選択してください。",
+      "usage-date-label": "利用日・定期期間",
+      "period-start-label": "定期開始日",
+      "period-end-label": "定期終了日",
+      "dates-error": "利用日または定期期間を入力してください。",
+      "transport-label": "交通手段",
+      "transport-error": "交通手段を選択してください。",
+      "boarding-label": "乗車駅・停留所（乗る場所）",
+      "boarding-error": "乗車駅・停留所を入力してください。",
+      "alighting-label": "降車駅・停留所（降りる場所）",
+      "alighting-error": "降車駅・停留所を入力してください。",
+      "fare-label": "運賃",
+      "fare-error": "運賃を入力してください。",
+      "remarks-label": "備考",
+      "remarks-help": "必要な場合のみ入力してください。"
+    };
+    function applyLabels(root = document) {
+      Object.entries(labels).forEach(([id, text]) => {
+        const elements = root.querySelectorAll(`[data-template-id="${id}"]`);
+        elements.forEach(el => { el.textContent = text; });
+      });
+    }
+    applyLabels();
+
+    let routeCounter = 0;
+    let submittedRows = [];
+    let dataReady = false;
+
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+
+    function initialMonth() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    }
+
+    function monthLabel(monthValue) {
+      const [year, month] = monthValue.split("-").map(Number);
+      return `${year}年${month}月`;
+    }
+
+    function formatDate(dateText) {
+      const date = new Date(dateText + "T00:00:00");
+      return `${date.getMonth() + 1}/${date.getDate()}`;
+    }
+
+    function clearFieldError(el) {
+      if (el) el.classList.remove("has-error");
+    }
+
+    function setFieldError(card, field, invalid) {
+      const el = card.querySelector(`[data-field="${field}"]`);
+      if (el) el.classList.toggle("has-error", invalid);
+      return !invalid;
+    }
+
+    function selectedRadio(card, group) {
+      return card.querySelector(`input[data-group="${group}"]:checked`)?.value || "";
+    }
+
+    function addRoute() {
+      if (routes.length >= 4) return;
+      routeCounter += 1;
+      const fragment = $("#route-template").content.cloneNode(true);
+      const card = fragment.querySelector(".route-card");
+      const id = `route-${routeCounter}`;
+      card.dataset.routeId = id;
+      $(".route-heading", card).textContent = `現場・経路${toJapaneseNumber(routeCounter)}`;
+      // template内の「何を入力する欄か」を複製後にも表示する
+      applyLabels(card);
+
+      $$('input[type="radio"]', card).forEach(input => {
+        const area = input.closest('[data-field]')?.dataset.field || "parking";
+        input.name = `${id}-${area}`;
+        input.dataset.group = area === "site" ? "site" : area === "transport" ? "transport" : area === "trip" ? "trip" : "parking";
+      });
+
+      const route = { id, card, selectedDates: [], displayMonth: $("#target-month").value || initialMonth() };
+      routes.push(route);
+      $("#route-list").appendChild(card);
+
+      $(".remove-route", card).classList.toggle("hidden", routes.length === 1);
+      card.addEventListener("change", event => handleCardChange(route, event));
+      $(".calendar-prev", card).addEventListener("click", () => moveMonth(route, -1));
+      $(".calendar-next", card).addEventListener("click", () => moveMonth(route, 1));
+      $(".remove-route", card).addEventListener("click", () => removeRoute(route.id));
+
+      renderCalendar(route);
+      updateAddRouteState();
+    }
+
+    function toJapaneseNumber(number) {
+      return ["", "①", "②", "③", "④"][number] || number;
+    }
+
+    function removeRoute(id) {
+      const index = routes.findIndex(route => route.id === id);
+      if (index < 0) return;
+      routes[index].card.remove();
+      routes.splice(index, 1);
+      routes.forEach((route, idx) => {
+        $(".route-heading", route.card).textContent = `現場・経路${toJapaneseNumber(idx + 1)}`;
+        $(".remove-route", route.card).classList.toggle("hidden", routes.length === 1);
+      });
+      updateAddRouteState();
+    }
+
+    function updateAddRouteState() {
+      const atLimit = routes.length >= 4;
+      $("#add-route-button").disabled = atLimit;
+      $("#add-route-button").classList.toggle("opacity-50", atLimit);
+      $("#route-limit-message").classList.toggle("hidden", !atLimit);
+    }
+
+    function handleCardChange(route, event) {
+      const card = route.card;
+      if (event.target.matches('input[data-group="trip"]')) {
+        const isPeriod = event.target.value === "定期";
+        $(".period-inputs", card).classList.toggle("hidden", !isPeriod);
+        $(".calendar-inputs", card).classList.toggle("hidden", isPeriod);
+        $(".selected-dates", card).classList.toggle("hidden", isPeriod);
+        clearFieldError(card.querySelector('[data-field="dates"]'));
+      }
+      if (event.target.matches('input[data-group="site"]')) {
+        $(".other-site", card).classList.toggle("hidden", event.target.value !== "その他");
+        clearFieldError(card.querySelector('[data-field="site"]'));
+      }
+      if (event.target.matches('input[data-group="parking"]')) {
+        const type = event.target.value;
+        $(".parking-daily", card).classList.toggle("hidden", type !== "日払い");
+        $(".parking-monthly", card).classList.toggle("hidden", type !== "月額");
+        clearFieldError(card.querySelector(".border-t"));
+      }
+      if (event.target.matches("input")) {
+        clearFieldError(event.target.closest("[data-field]"));
+      }
+    }
+
+    function moveMonth(route, offset) {
+      const [year, month] = route.displayMonth.split("-").map(Number);
+      const next = new Date(year, month - 1 + offset, 1);
+      route.displayMonth = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`;
+      renderCalendar(route);
+    }
+
+    function renderCalendar(route) {
+      const card = route.card;
+      const [year, month] = route.displayMonth.split("-").map(Number);
+      const grid = $(".calendar-grid", card);
+      $(".calendar-month", card).textContent = `${year}年${month}月`;
+      grid.innerHTML = "";
+
+      const firstDay = new Date(year, month - 1, 1).getDay();
+      const lastDate = new Date(year, month, 0).getDate();
+      const today = new Date();
+      const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+      for (let i = 0; i < firstDay; i++) {
+        const blank = document.createElement("div");
+        blank.className = "calendar-blank";
+        grid.appendChild(blank);
+      }
+      for (let day = 1; day <= lastDate; day++) {
+        const key = `${route.displayMonth}-${String(day).padStart(2, "0")}`;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "calendar-day" + (route.selectedDates.includes(key) ? " selected" : "") + (key === todayKey ? " today" : "");
+        button.textContent = day;
+        button.setAttribute("aria-pressed", String(route.selectedDates.includes(key)));
+        button.addEventListener("click", () => {
+          const index = route.selectedDates.indexOf(key);
+          if (index >= 0) route.selectedDates.splice(index, 1);
+          else route.selectedDates.push(key);
+          route.selectedDates.sort();
+          setFieldError(card, "dates", false);
+          renderCalendar(route);
+        });
+        grid.appendChild(button);
+      }
+      renderSelectedDates(route);
+    }
+
+    function renderSelectedDates(route) {
+      const target = $(".selected-dates", route.card);
+      target.innerHTML = "";
+      const title = document.createElement("strong");
+      title.textContent = "選択中：";
+      target.appendChild(title);
+      const text = document.createElement("span");
+      text.textContent = route.selectedDates.length ? route.selectedDates.map(formatDate).join("、") : "日付をタップして選択してください";
+      target.appendChild(text);
+    }
+
+    function getRouteData(route) {
+      const card = route.card;
+      const siteValue = selectedRadio(card, "site");
+      const siteName = siteValue === "その他" ? $(".other-site-input", card).value.trim() : siteValue;
+      const parkingCard = $("#parking-card");
+      const parkingType = selectedRadio(parkingCard, "parking");
+      const daily = $(".parking-daily", parkingCard);
+      const monthly = $(".parking-monthly", parkingCard);
+      const parkingFee = parkingType === "日払い"
+        ? Number($(".parking-fee-input", daily).value || 0)
+        : parkingType === "月額" ? Number($(".parking-fee-input", monthly).value || 0) : 0;
+
+      return {
+        route,
+        siteValue,
+        siteName,
+        dates: route.selectedDates,
+        periodStart: $(".period-start-input", card).value,
+        periodEnd: $(".period-end-input", card).value,
+        transportType: selectedRadio(card, "transport"),
+        boardingStation: $(".boarding-input", card).value.trim(),
+        alightingStation: $(".alighting-input", card).value.trim(),
+        tripType: selectedRadio(card, "trip"),
+        fare: Number($(".fare-input", card).value || 0),
+        parkingType,
+        parkingFee,
+        parkingDays: parkingType === "日払い" ? Number($(".parking-days-input", card).value || 0) : 0,
+        remarks: $("#remarks-input", card).value.trim()
+      };
+    }
+
+    function validateForm() {
+      let valid = true;
+      const employee = $("#employee-name").value.trim();
+      const month = $("#target-month").value;
+      valid = setFieldError($("#basic-info-card"), "employee_name", !employee) && valid;
+      valid = setFieldError($("#basic-info-card"), "target_month", !month) && valid;
+
+      routes.forEach(route => {
+        const data = getRouteData(route);
+        const card = route.card;
+        valid = setFieldError(card, "site", !data.siteValue || (data.siteValue === "その他" && !data.siteName)) && valid;
+        const isPeriod = data.tripType === "定期";
+        const validPeriod = !isPeriod || (data.periodStart && data.periodEnd && data.periodStart <= data.periodEnd);
+        valid = setFieldError(card, "dates", isPeriod ? !validPeriod : !data.dates.length) && valid;
+        valid = setFieldError(card, "transport", !data.transportType) && valid;
+        valid = setFieldError(card, "boarding", !data.boardingStation) && valid;
+        valid = setFieldError(card, "alighting", !data.alightingStation) && valid;
+        valid = setFieldError(card, "trip", !data.tripType) && valid;
+        valid = setFieldError(card, "fare", !Number.isFinite(data.fare) || data.fare <= 0) && valid;
+      });
+      const parkingData = getRouteData(routes[0]);
+      const parkingCard = $("#parking-card");
+      valid = setFieldError(parkingCard, "parking", !parkingData.parkingType) && valid;
+      if (parkingData.parkingType === "日払い") {
+        valid = setFieldError(parkingCard, "parking_fee_daily", parkingData.parkingFee <= 0) && valid;
+        valid = setFieldError(parkingCard, "parking_days", parkingData.parkingDays <= 0) && valid;
+      }
+      if (parkingData.parkingType === "月額") {
+        valid = setFieldError(parkingCard, "parking_fee_monthly", parkingData.parkingFee <= 0) && valid;
+      }
+      /* validation above covers the shared parking section */
+      return valid;
+    }
+
+    function showReview() {
+      if (!validateForm()) {
+        document.querySelector(".has-error")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      const employee = $("#employee-name").value.trim();
+      const month = $("#target-month").value;
+      const content = $("#review-content");
+      content.innerHTML = "";
+
+      const basic = document.createElement("section");
+      basic.className = "surface-card rounded-2xl bg-white p-5";
+      basic.innerHTML = `<h3 class="font-bold">基本情報</h3><div class="summary-row mt-3"><span class="text-slate-500">社員名</span><p class="mt-1 font-semibold"></p></div><div class="summary-row"><span class="text-slate-500">精算対象月</span><p class="mt-1 font-semibold"></p></div>`;
+      basic.querySelectorAll("p")[0].textContent = employee;
+      basic.querySelectorAll("p")[1].textContent = monthLabel(month);
+      content.appendChild(basic);
+
+      routes.map(getRouteData).forEach((data, index) => {
+        const card = document.createElement("section");
+        card.className = "surface-card rounded-2xl bg-white p-5";
+        const parking = data.parkingType === "利用なし" ? "利用なし" :
+          `${data.parkingType}：${data.parkingFee.toLocaleString()}円${data.parkingType === "日払い" ? ` ／ ${data.parkingDays}日` : ""}`;
+        const rows = [
+          ["利用日", data.dates.map(formatDate).join("、")],
+          ["現場", data.siteName],
+          ["交通手段", data.transportType],
+          ["乗車駅・停留所", data.boardingStation],
+          ["降車駅・停留所", data.alightingStation],
+          ["片道／往復", data.tripType],
+          ["運賃", `${data.fare.toLocaleString()}円`],
+          ["駐輪場", parking],
+          ["備考", data.remarks || "なし"]
+        ];
+        const heading = document.createElement("h3");
+        heading.className = "font-bold";
+        heading.textContent = `現場・経路${toJapaneseNumber(index + 1)}`;
+        card.appendChild(heading);
+        rows.forEach(([label, value]) => {
+          const row = document.createElement("div");
+          row.className = "summary-row mt-2";
+          const small = document.createElement("span");
+          small.className = "text-sm text-slate-500";
+          small.textContent = label;
+          const p = document.createElement("p");
+          p.className = "mt-1 font-semibold break-words";
+          p.textContent = value;
+          row.append(small, p);
+          card.appendChild(row);
+        });
+        content.appendChild(card);
+      });
+
+      $("#form-view").classList.add("hidden-panel");
+      $("#review-view").classList.remove("hidden-panel");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function submitApplication() {
+      const button = $("#submit-button");
+      button.disabled = true;
+      button.textContent = "申請を保存しています…";
+      $("#submit-error").classList.add("hidden");
+
+      const employee = $("#employee-name").value.trim();
+      const targetMonth = monthLabel($("#target-month").value);
+      const submittedAt = new Date().toISOString();
+      const rows = [];
+
+      routes.map(getRouteData).forEach(data => {
+        const usageDates = data.tripType === "定期" ? [data.periodStart] : data.dates;
+        usageDates.forEach(date => {
+          rows.push({
+            submitted_at: submittedAt,
+            employee_name: employee,
+            target_month: targetMonth,
+            site_name: data.siteName,
+            usage_date: date,
+            transport_type: data.transportType,
+            boarding_station: data.boardingStation,
+            alighting_station: data.alightingStation,
+            trip_type: data.tripType,
+            fare: data.fare,
+            parking_type: data.parkingType,
+            parking_fee: data.parkingFee,
+            parking_days: data.parkingDays,
+            remarks: data.remarks,
+            period_start: data.tripType === "定期" ? data.periodStart : "",
+            period_end: data.tripType === "定期" ? data.periodEnd : ""
+          });
+        });
+      });
+
+      try {
+        const saved = JSON.parse(localStorage.getItem("transportExpenseSubmissions") || "[]");
+        saved.push(...rows);
+        localStorage.setItem("transportExpenseSubmissions", JSON.stringify(saved));
+        submittedRows = rows;
+
+        $("#review-view").classList.add("hidden-panel");
+        $("#complete-view").classList.remove("hidden-panel");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch (error) {
+        $("#submit-error").textContent = "申請を保存できませんでした。ブラウザの保存領域を確認してください。";
+        $("#submit-error").classList.remove("hidden");
+        button.disabled = false;
+        button.textContent = "この内容で申請する";
+      }
+    }
+
+    function csvEscape(value) {
+      const text = String(value ?? "");
+      return `"${text.replace(/"/g, '""')}"`;
+    }
+
+    function downloadCsv() {
+      const headers = ["申請日時", "社員名", "精算対象月", "現場名", "利用日", "交通手段", "乗車駅／停留所", "降車駅／停留所", "片道／往復", "運賃", "駐輪場区分", "駐輪場金額", "駐輪場利用日数", "備考"];
+      const lines = [headers, ...submittedRows.map(row => [
+        row.submitted_at, row.employee_name, row.target_month, row.site_name, formatDate(row.usage_date),
+        row.transport_type, row.boarding_station, row.alighting_station, row.trip_type, row.fare,
+        row.parking_type, row.parking_fee, row.parking_days, row.remarks
+      ])].map(row => row.map(csvEscape).join(","));
+
+      const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `交通費精算申請_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(link.href);
+    }
+
+    $("#target-month").value = initialMonth();
+    $("#target-month").addEventListener("change", () => {
+      const value = $("#target-month").value;
+      routes.forEach(route => {
+        if (value) {
+          route.displayMonth = value;
+          renderCalendar(route);
+        }
+      });
+      clearFieldError($("#basic-info-card").querySelector('[data-field="target_month"]'));
+    });
+    $("#employee-name").addEventListener("input", () => clearFieldError($("#basic-info-card").querySelector('[data-field="employee_name"]')));
+    $("#parking-card").addEventListener("change", event => {
+      if (event.target.matches('input[data-group="parking"]')) {
+        const type = event.target.value;
+        $(".parking-daily", $("#parking-card")).classList.toggle("hidden", type !== "日払い");
+        $(".parking-monthly", $("#parking-card")).classList.toggle("hidden", type !== "月額");
+        clearFieldError($("#parking-card").querySelector(".choice-wrap"));
+      }
+    });
+    $("#add-route-button").addEventListener("click", addRoute);
+    $("#expense-form").addEventListener("submit", event => { event.preventDefault(); showReview(); });
+    $("#review-button").addEventListener("click", event => { event.preventDefault(); showReview(); });
+    $("#back-button").addEventListener("click", () => {
+      $("#review-view").classList.add("hidden-panel");
+      $("#form-view").classList.remove("hidden-panel");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    $("#submit-button").addEventListener("click", submitApplication);
+    $("#csv-button").addEventListener("click", downloadCsv);
+
+    addRoute();
+  </script>
+ </body>
+</html>
